@@ -117,5 +117,5 @@ docker run -p 8000:80 --env-file .env gobeyond-api
 ---
 
 <div align="center">
-  <sub>Built with ❤️ for rapid SaaS development.</sub>
+  <sub>Built with ❤️.</sub>
 </div>
