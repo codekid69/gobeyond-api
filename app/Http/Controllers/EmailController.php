@@ -11,8 +11,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\ReplyEmailRequest;
 
 /**
- * Handles email retrieval and reply operations.
- *
+
  * Provides thread-grouped email listing and the ability
  * to reply to threads via the Gmail API.
  */
