@@ -1,0 +1,6 @@
+/vendor/
+/node_modules/
+/.env
+/storage/*.key
+/debug_db.php
+/test_db.php
