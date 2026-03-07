@@ -1,7 +1,7 @@
 <div align="center">
   <br />
   <h1>🚀 GoBeyond API</h1>
-  <strong>A premium Laravel REST API powering the GoBeyond Gmail Integration Dashboard.</strong><br />
+  <strong> Laravel REST API powering the GoBeyond Gmail Integration Dashboard.</strong><br />
   <br />
 
   [![PHP Version](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?style=flat&logo=php)]()
