@@ -6,6 +6,7 @@ RUN apk add --no-cache \
     curl \
     libpng-dev \
     libxml2-dev \
+    icu-dev \
     zip \
     unzip \
     nginx \
