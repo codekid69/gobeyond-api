@@ -10,11 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('emails', function (Blueprint $table) {
-            if (!Schema::hasIndex('emails', ['date'], 'emails_date_index')) {
-                $table->index('date', 'emails_date_index');
-            }
-        });
+        // Index is already created in 2026_03_07_121108_add_prod_fields_to_emails_table.php
     }
 
     /**
@@ -22,8 +18,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::table('emails', function (Blueprint $table) {
-            $table->dropIndex(['date']);
-        });
+        // Handled by previous migration's down logic
     }
 };
