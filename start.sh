@@ -15,7 +15,6 @@ chmod -R 775 /var/www/storage
 php /var/www/artisan config:clear
 php /var/www/artisan config:cache
 php /var/www/artisan route:cache
-php /var/www/artisan view:cache
 
 # Run migrations (creates tables if they don't exist)
 php /var/www/artisan migrate --force
