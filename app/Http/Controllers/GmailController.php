@@ -118,10 +118,15 @@ class GmailController extends Controller
         // Rate limiting and active sync prevention
         $lastJob = SyncJob::where('user_id', $user->id)->latest()->first();
         if ($lastJob && $lastJob->status === 'processing') {
-            return response()->json([
-                'message' => 'A sync is already in progress.',
-                'status' => 'error',
-            ], 429);
+            // If it has been processing for more than 10 minutes, assume it crashed/timed out
+            if ($lastJob->started_at && $lastJob->started_at->diffInMinutes(now()) > 10) {
+                $lastJob->update(['status' => 'failed', 'error' => 'Job timed out']);
+            } else {
+                return response()->json([
+                    'message' => 'A sync is already in progress.',
+                    'status' => 'error',
+                ], 429);
+            }
         }
 
         if ($lastJob && $lastJob->status === 'completed' && $lastJob->started_at) {

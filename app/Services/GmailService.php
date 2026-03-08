@@ -82,64 +82,27 @@ class GmailService
     public function listMessages(int $days): array
     {
         $gmail = $this->getGmailService();
-        $timestamp = now()->subDays($days)->getTimestamp();
+        $date = now()->subDays($days)->format('Y/m/d');
 
-        \Illuminate\Support\Facades\Log::info("Fetching Gmail with query: after:{$timestamp} (subDays: {$days})");
+        \Illuminate\Support\Facades\Log::info("Fetching Gmail with query: after:{$date} (subDays: {$days})");
 
         // Set limits based on time window to conserve free tier limits and memory
         $maxTotal = 10;
         if ($days === 15)
-            $maxTotal = 20;
+            $maxTotal = 15;
         elseif ($days === 30)
-            $maxTotal = 30;
+            $maxTotal = 20;
 
-        $allMessages = [];
-        $pageToken = null;
+        // Fetch exactly that amount of emails in a single fast request
+        $params = [
+            'q' => "after:{$date}",
+            'maxResults' => $maxTotal,
+        ];
 
-        // Fetch a larger pool of message IDs (stubs) to sample from.
-        // We cap this at 5 pages (500 items) to avoid excessive API calls
-        // while still getting a good spread across the date range.
-        $pagesFetched = 0;
+        $response = $gmail->users_messages->listUsersMessages('me', $params);
+        $messages = $response->getMessages() ?? [];
 
-        do {
-            $params = [
-                'q' => "after:{$timestamp}",
-                'maxResults' => 100,
-            ];
-
-            if ($pageToken) {
-                $params['pageToken'] = $pageToken;
-            }
-
-            $response = $gmail->users_messages->listUsersMessages('me', $params);
-            $newMessages = $response->getMessages() ?? [];
-
-            foreach ($newMessages as $msg) {
-                $allMessages[] = $msg;
-            }
-
-            $pageToken = $response->getNextPageToken();
-            $pagesFetched++;
-        } while ($pageToken && $pagesFetched < 5);
-
-        $totalFound = count($allMessages);
-
-        // If we found fewer messages than the limit, return them all
-        if ($totalFound <= $maxTotal) {
-            return $allMessages;
-        }
-
-        // Evenly sample $maxTotal messages from the $allMessages array
-        // to represent the entire date range.
-        $sampledMessages = [];
-        $step = $totalFound / $maxTotal;
-
-        for ($i = 0; $i < $maxTotal; $i++) {
-            $index = min((int) floor($i * $step), $totalFound - 1);
-            $sampledMessages[] = $allMessages[$index];
-        }
-
-        return $sampledMessages;
+        return $messages;
     }
 
     /**
