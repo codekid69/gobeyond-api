@@ -12,6 +12,11 @@ mkdir -p /var/www/storage/framework/cache/data
 mkdir -p /var/www/storage/logs
 chmod -R 775 /var/www/storage
 
+# Fix SQLite permissions so PHP-FPM (www-data) can write to it
+# Note: SQLite needs write access to the *directory* it sits in to create lock/journal files
+chown -R www-data:www-data /var/www/database
+chmod -R 775 /var/www/database
+
 # Run artisan optimization (env vars available NOW at runtime, not at build time)
 php /var/www/artisan config:clear
 php /var/www/artisan config:cache
