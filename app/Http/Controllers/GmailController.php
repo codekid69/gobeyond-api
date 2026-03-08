@@ -115,6 +115,22 @@ class GmailController extends Controller
             ], 400);
         }
 
+        // Rate limiting and active sync prevention
+        $lastJob = SyncJob::where('user_id', $user->id)->latest()->first();
+        if ($lastJob && $lastJob->status === 'processing') {
+            return response()->json([
+                'message' => 'A sync is already in progress.',
+                'status' => 'error',
+            ], 429);
+        }
+
+        if ($lastJob && $lastJob->status === 'completed' && $lastJob->started_at && $lastJob->started_at->addMinutes(5)->isFuture()) {
+            return response()->json([
+                'message' => 'Please wait 5 minutes between sync requests.',
+                'status' => 'error',
+            ], 429);
+        }
+
         // Dispatch background sync job
         SyncEmailsJob::dispatch($user, $request->days);
 
@@ -150,6 +166,10 @@ class GmailController extends Controller
             $message = "Processed {$job->processed_messages} of {$job->total_messages} messages...";
         } elseif ($job->status === 'completed') {
             $message = "Successfully synced {$job->processed_messages} messages.";
+            // If they hit our artificial limits (10 for 7d, 20 for 15d, 30 for 30d) notify them
+            if (in_array($job->total_messages, [10, 20, 30])) {
+                $message .= " (Free Tier: Showing the most recent {$job->total_messages} emails)";
+            }
         } elseif ($job->status === 'failed') {
             $message = "Sync failed: {$job->error}";
         }

@@ -86,8 +86,20 @@ class GmailService
 
         \Illuminate\Support\Facades\Log::info("Fetching Gmail with query: after:{$timestamp} (subDays: {$days})");
 
-        $messages = [];
+        // Set limits based on time window to conserve free tier limits and memory
+        $maxTotal = 10;
+        if ($days === 15)
+            $maxTotal = 20;
+        elseif ($days === 30)
+            $maxTotal = 30;
+
+        $allMessages = [];
         $pageToken = null;
+
+        // Fetch a larger pool of message IDs (stubs) to sample from.
+        // We cap this at 5 pages (500 items) to avoid excessive API calls
+        // while still getting a good spread across the date range.
+        $pagesFetched = 0;
 
         do {
             $params = [
@@ -100,11 +112,34 @@ class GmailService
             }
 
             $response = $gmail->users_messages->listUsersMessages('me', $params);
-            $messages = array_merge($messages, $response->getMessages() ?? []);
-            $pageToken = $response->getNextPageToken();
-        } while ($pageToken);
+            $newMessages = $response->getMessages() ?? [];
 
-        return $messages;
+            foreach ($newMessages as $msg) {
+                $allMessages[] = $msg;
+            }
+
+            $pageToken = $response->getNextPageToken();
+            $pagesFetched++;
+        } while ($pageToken && $pagesFetched < 5);
+
+        $totalFound = count($allMessages);
+
+        // If we found fewer messages than the limit, return them all
+        if ($totalFound <= $maxTotal) {
+            return $allMessages;
+        }
+
+        // Evenly sample $maxTotal messages from the $allMessages array
+        // to represent the entire date range.
+        $sampledMessages = [];
+        $step = $totalFound / $maxTotal;
+
+        for ($i = 0; $i < $maxTotal; $i++) {
+            $index = min((int) floor($i * $step), $totalFound - 1);
+            $sampledMessages[] = $allMessages[$index];
+        }
+
+        return $sampledMessages;
     }
 
     /**
