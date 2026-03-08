@@ -11,7 +11,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('emails', function (Blueprint $table) {
-            $table->index('date');
+            $sm = Schema::getConnection()->getDoctrineSchemaManager();
+            $indexesFound = $sm->listTableIndexes('emails');
+
+            if (!array_key_exists('emails_date_index', $indexesFound)) {
+                $table->index('date');
+            }
         });
     }
 
