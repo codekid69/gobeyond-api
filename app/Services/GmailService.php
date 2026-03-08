@@ -82,27 +82,70 @@ class GmailService
     public function listMessages(int $days): array
     {
         $gmail = $this->getGmailService();
-        $date = now()->subDays($days)->format('Y/m/d');
 
-        \Illuminate\Support\Facades\Log::info("Fetching Gmail with query: after:{$date} (subDays: {$days})");
+        \Illuminate\Support\Facades\Log::info("Fetching Gmail with custom ranges (subDays: {$days})");
 
-        // Set limits based on time window to conserve free tier limits and memory
-        $maxTotal = 10;
-        if ($days === 15)
-            $maxTotal = 15;
-        elseif ($days === 30)
-            $maxTotal = 20;
+        $messages = [];
 
-        // Fetch exactly that amount of emails in a single fast request
-        $params = [
-            'q' => "after:{$date}",
-            'maxResults' => $maxTotal,
-        ];
+        if ($days === 7) {
+            // 7 days range: show up to 20 emails
+            $params = [
+                'q' => "newer_than:7d",
+                'maxResults' => 20,
+            ];
+            $response = $gmail->users_messages->listUsersMessages('me', $params);
+            $messages = array_merge($messages, $response->getMessages() ?? []);
+        } elseif ($days === 15) {
+            // 15 days range: 10 older emails and 10 newer emails to show 15 days old mails
+            $oldParams = [
+                'q' => "older_than:7d newer_than:15d",
+                'maxResults' => 10,
+            ];
+            $responseOld = $gmail->users_messages->listUsersMessages('me', $oldParams);
+            $messages = array_merge($messages, $responseOld->getMessages() ?? []);
 
-        $response = $gmail->users_messages->listUsersMessages('me', $params);
-        $messages = $response->getMessages() ?? [];
+            $newParams = [
+                'q' => "newer_than:7d",
+                'maxResults' => 10,
+            ];
+            $responseNew = $gmail->users_messages->listUsersMessages('me', $newParams);
+            $messages = array_merge($messages, $responseNew->getMessages() ?? []);
+        } elseif ($days === 30) {
+            // 30 days range: preserve backend exhaustion and db perfectly (fetch 10 older, 10 newer)
+            $oldParams = [
+                'q' => "older_than:15d newer_than:30d",
+                'maxResults' => 10,
+            ];
+            $responseOld = $gmail->users_messages->listUsersMessages('me', $oldParams);
+            $messages = array_merge($messages, $responseOld->getMessages() ?? []);
 
-        return $messages;
+            $newParams = [
+                'q' => "newer_than:15d",
+                'maxResults' => 10,
+            ];
+            $responseNew = $gmail->users_messages->listUsersMessages('me', $newParams);
+            $messages = array_merge($messages, $responseNew->getMessages() ?? []);
+        } else {
+            // Fallback
+            $params = [
+                'q' => "newer_than:{$days}d",
+                'maxResults' => 20,
+            ];
+            $response = $gmail->users_messages->listUsersMessages('me', $params);
+            $messages = array_merge($messages, $response->getMessages() ?? []);
+        }
+
+        // Deduplicate
+        $uniqueMessages = [];
+        $seen = [];
+        foreach ($messages as $msg) {
+            if (!isset($seen[$msg->getId()])) {
+                $seen[$msg->getId()] = true;
+                $uniqueMessages[] = $msg;
+            }
+        }
+
+        return $uniqueMessages;
     }
 
     /**
