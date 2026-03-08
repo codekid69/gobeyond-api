@@ -124,11 +124,14 @@ class GmailController extends Controller
             ], 429);
         }
 
-        if ($lastJob && $lastJob->status === 'completed' && $lastJob->started_at && $lastJob->started_at->addMinutes(5)->isFuture()) {
-            return response()->json([
-                'message' => 'Please wait 5 minutes between sync requests.',
-                'status' => 'error',
-            ], 429);
+        if ($lastJob && $lastJob->status === 'completed' && $lastJob->started_at) {
+            $minutesSinceLastSync = $lastJob->started_at->diffInMinutes(now());
+            if ($minutesSinceLastSync < 1) {
+                return response()->json([
+                    'message' => 'Please wait 1 minute between sync requests.',
+                    'status' => 'error',
+                ], 429);
+            }
         }
 
         // Dispatch background sync job

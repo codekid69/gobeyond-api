@@ -21,6 +21,7 @@ Route::get('/gmail-callback', [GmailController::class, 'callback']);
 
 // ── Auth Status ──
 Route::get('/auth-status', [GmailController::class, 'authStatus']);
+Route::post('/disconnect-gmail', [GmailController::class, 'disconnect']);
 
 // ── Dashboard Stats ──
 Route::get('/stats', [StatsController::class, 'index']);
