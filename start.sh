@@ -1,8 +1,13 @@
 #!/bin/sh
 set -e
 
-# Set DB path explicitly to the project database dir
-export DB_DATABASE="/var/www/database/database.sqlite"
+# Force SQLite - override any MySQL env vars that may be set in Render dashboard
+export DB_CONNECTION=sqlite
+export DB_DATABASE=/var/www/database/database.sqlite
+
+# Ensure the SQLite database file exists (touch creates it if missing)
+touch /var/www/database/database.sqlite
+chmod 664 /var/www/database/database.sqlite
 
 # Ensure storage directories exist at runtime (safety net)
 mkdir -p /var/www/storage/framework/sessions
